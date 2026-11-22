@@ -1,0 +1,45 @@
+name: Update PrizePicks lines
+
+on:
+  schedule:
+    # Every 10 minutes from about 8 AM to midnight Eastern (times are UTC).
+    # GitHub may start scheduled runs a few minutes late when it's busy.
+    # Don't go below 10: each saved update rebuilds the Pages site, and Pages allows about 10 builds an hour.
+    - cron: "3-59/10 13-23 * * *"
+    - cron: "3-59/10 0-4 * * *"
+  workflow_dispatch: # adds a "Run workflow" button in the Actions tab
+
+permissions:
+  contents: write
+
+concurrency:
+  group: data-updates
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Pull PrizePicks lines
+        # Add more leagues with --leagues 7,9 (run fetch_prizepicks.py --list to see league ids)
+        run: python fetch_prizepicks.py --leagues 7 --out data/prizepicks.json
+
+      - name: Save the new file to the repo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898333+github-actions[bot]@users.noreply.github.com"
+          git add data/prizepicks.json
+          if git diff --cached --quiet; then
+            echo "No changes."
+          else
+            git commit -m "Update PrizePicks lines $(date -u +%Y-%m-%dT%H:%MZ)"
+            git pull --rebase
+            git push
+          fi
