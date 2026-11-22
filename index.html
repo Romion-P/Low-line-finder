@@ -150,7 +150,7 @@ details summary{cursor:pointer;font-weight:600}
   <div id="banner" class="demo-banner"></div>
 
   <section class="live" aria-label="Live PrizePicks lines">
-    <button class="primary" type="button" id="btnRefresh">Refresh from PrizePicks</button>
+    <button class="primary" type="button" id="btnRefresh">Check for new lines</button>
     <label class="ctl" for="ppLeague">League
       <select id="ppLeague"><option value="7">NBA</option><option value="9">NFL</option><option value="8">NHL</option><option value="20">CBB</option><option value="15">CFB</option><option value="2">MLB</option></select>
     </label>
@@ -644,20 +644,31 @@ function applyPPFile(obj, append){
 }
 // On GitHub Pages, data/prizepicks.json is refreshed every 30 minutes by a GitHub Action.
 function autoLoadPP(){
-  if(!/^https?:$/.test(location.protocol)) return;
+  if(!/^https?:$/.test(location.protocol)) return Promise.resolve("none");
   try{
-    fetch("data/prizepicks.json?t="+Date.now(),{cache:"no-store"}).then(function(r){ return r.ok?r.json():null; }).then(function(obj){
-      if(!obj||obj.source!=="prizepicks"||!Array.isArray(obj.props)||!obj.props.length) return;
-      if(!state.isDemo&&state.slateFrom&&obj.pulledMs<=state.slateFrom) return; // board already has these or newer lines
+    return fetch("data/prizepicks.json?t="+Date.now(),{cache:"no-store"}).then(function(r){ return r.ok?r.json():null; }).then(function(obj){
+      if(!obj||obj.source!=="prizepicks"||!Array.isArray(obj.props)||!obj.props.length) return "none";
+      if(!state.isDemo&&state.slateFrom&&obj.pulledMs<=state.slateFrom){
+        if(obj.pulledMs===state.slateFrom) setStatus("Up to date: lines pulled by GitHub "+whenText(obj.pulledMs)+". GitHub checks PrizePicks about every 10 min.");
+        return "same";
+      }
       var c=applyPPFile(obj,false);
-      setStatus("Lines pulled automatically "+whenText(obj.pulledMs)+"."+changeText(c)+" Checks for newer lines every 2 min while this page is open.");
+      setStatus("Lines pulled by GitHub "+whenText(obj.pulledMs)+"."+changeText(c)+" This page checks for newer ones every 2 min.");
       render();
-    }).catch(function(){});
-  }catch(e){}
+      return "applied";
+    }).catch(function(){ return "none"; });
+  }catch(e){ return Promise.resolve("none"); }
 }
 var autoTimer=null, failCount=0;
 function setStatus(t,err){ var el=$("liveStatus"); el.textContent=t; el.className="status"+(err?" err":""); }
 function refreshPP(){
+  var btn=$("btnRefresh"); btn.disabled=true; setStatus("Checking for new lines…");
+  autoLoadPP().then(function(res){
+    btn.disabled=false;
+    if(res==="none") refreshDirect();
+  });
+}
+function refreshDirect(){
   var lg=$("ppLeague").value, url="https://api.prizepicks.com/projections?league_id="+encodeURIComponent(lg)+"&per_page=250";
   var btn=$("btnRefresh"); btn.disabled=true; setStatus("Checking PrizePicks…");
   var ctl=("AbortController" in window)?new AbortController():null, to=setTimeout(function(){ if(ctl) ctl.abort(); },20000);
@@ -670,7 +681,9 @@ function refreshPP(){
     render();
   }).catch(function(){
     failCount++;
-    setStatus("PrizePicks didn't let this page load its feed (it blocks most sites from reading it). Open the feed, copy it and paste it into Import slate. New and moved lines are still tracked that way.",true);
+    setStatus(/^https?:$/.test(location.protocol)
+      ? "No lines from GitHub yet, and PrizePicks won't let a web page read its feed directly. Check that the Update PrizePicks lines workflow ran successfully in your repo's Actions tab, or paste the feed into Import slate."
+      : "PrizePicks won't let this page read its feed directly. Open the feed, copy it and paste it into Import slate. New and moved lines are still tracked that way.",true);
     if(failCount>=2) stopAuto();
   }).then(function(){ clearTimeout(to); btn.disabled=false; });
 }

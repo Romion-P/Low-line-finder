@@ -1,0 +1,5 @@
+/gamelogs.json
+players.txt
+__pycache__/
+*.pyc
+.env

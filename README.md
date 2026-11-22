@@ -40,6 +40,7 @@ Sort by **Newest or just moved**, or tick **New or moved (last 2 hrs)**, to see 
 ```
 python fetch_prizepicks.py                       # NBA, writes prizepicks.json
 python fetch_prizepicks.py --leagues 7,9         # NBA and NFL
+python fetch_prizepicks.py --list              # every league id PrizePicks has right now
 ```
 
 Load the file with **Import slate → Load prizepicks.json**.
@@ -48,7 +49,7 @@ Load the file with **Import slate → Load prizepicks.json**.
 
 PrizePicks blocks many cloud servers and its terms restrict automated access. If the workflow fails with "blocked", the last good file stays in place; run the script from home or paste the feed instead.
 
-**Refresh from PrizePicks** (with optional auto-refresh every 2–30 minutes) tries to pull the feed directly. PrizePicks blocks most websites from reading its feed, so this may not work. If it doesn't, paste the feed into **Import slate**, and the new/moved tracking works the same way. PrizePicks' terms restrict automated access, so keep auto-refresh intervals reasonable.
+**Check for new lines** loads the newest lines your GitHub workflow saved. Only if there are none does it try PrizePicks directly, which PrizePicks usually blocks. If it doesn't, paste the feed into **Import slate**, and the new/moved tracking works the same way. PrizePicks' terms restrict automated access, so keep auto-refresh intervals reasonable.
 
 ### 2. Add game logs (NBA)
 
