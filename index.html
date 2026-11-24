@@ -349,7 +349,70 @@ def(["offensiverebounds"], function(g){return g.OREB;});
 def(["defensiverebounds"], function(g){return g.DREB;});
 def(["twopointersmade"], function(g){return g.FGM==null?undefined:n0(g.FGM)-n0(g.FG3M);});
 def(["twopointersattempted"], function(g){return g.FGA==null?undefined:n0(g.FGA)-n0(g.FG3A);});
-function statFn(stat){ return STATS[String(stat||"").toLowerCase().replace(/[^a-z0-9+]/g,"")]; }
+// Other sports. Game logs for these come from ESPN box scores (fetch_gamelogs_espn.py),
+// which saves football and hockey stats under short codes (pY = passing yards, cR = receptions,
+// SOG = shots on goal...; see KEEP in that script). Baseball keeps ESPN's own names for now.
+function v(g,k){ return n0(g[k]); }
+function def2(map,names,fn){ names.forEach(function(k){ map[k]=fn; }); }
+var FB={}, HK={}, BB={};
+def2(FB,["passyards","passingyards"],function(g){return v(g,"pY");});
+def2(FB,["passattempts","passingattempts"],function(g){return v(g,"pA");});
+def2(FB,["passcompletions","completions"],function(g){return v(g,"pC");});
+def2(FB,["passtds","passingtouchdowns","passingtds"],function(g){return v(g,"pT");});
+def2(FB,["int","interceptions","interceptionsthrown","passinterceptions"],function(g){return v(g,"pI");});
+def2(FB,["rushyards","rushingyards"],function(g){return v(g,"rY");});
+def2(FB,["rushattempts","rushingattempts","carries"],function(g){return v(g,"rA");});
+def2(FB,["rushtds","rushingtouchdowns"],function(g){return v(g,"rT");});
+def2(FB,["longestrush"],function(g){return v(g,"rL");});
+def2(FB,["receivingyards","recyards","recyds"],function(g){return v(g,"cY");});
+def2(FB,["receptions","rec"],function(g){return v(g,"cR");});
+def2(FB,["rectargets","targets","receivingtargets"],function(g){return v(g,"cG");});
+def2(FB,["longestreception"],function(g){return v(g,"cL");});
+def2(FB,["rush+recyds","rush+recyards","rushing+receivingyards"],function(g){return v(g,"rY")+v(g,"cY");});
+def2(FB,["pass+rushyds","pass+rushyards","passing+rushingyards"],function(g){return v(g,"pY")+v(g,"rY");});
+def2(FB,["rush+rectds","rushing+receivingtouchdowns"],function(g){return v(g,"rT")+v(g,"cT");});
+def2(FB,["sacks"],function(g){return v(g,"dK");});
+def2(FB,["tackles+ast","tacklesassists","totaltackles"],function(g){return v(g,"dT");});
+def2(FB,["solotackles"],function(g){return v(g,"dS");});
+def2(FB,["fgmade","fieldgoalsmade"],function(g){return v(g,"kF");});
+def2(FB,["kickingpoints"],function(g){return v(g,"kP");});
+def2(FB,["fantasyscore"],function(g){ return 0.04*v(g,"pY")+4*v(g,"pT")-v(g,"pI")
+  +0.1*v(g,"rY")+6*v(g,"rT")+v(g,"cR")+0.1*v(g,"cY")
+  +6*v(g,"cT")-v(g,"fL"); });
+def2(HK,["shotsongoal","shots","sog"],function(g){return v(g,"SOG");});
+def2(HK,["goals"],function(g){return v(g,"G");});
+def2(HK,["assists"],function(g){return v(g,"A");});
+def2(HK,["points"],function(g){return v(g,"G")+v(g,"A");});
+def2(HK,["blockedshots","blocks"],function(g){return v(g,"BS");});
+def2(HK,["hits"],function(g){return v(g,"HIT");});
+def2(HK,["faceoffswon"],function(g){return v(g,"FW");});
+def2(HK,["timeonice","toi"],function(g){return g.TOI;});
+def2(HK,["goaliesaves","saves"],function(g){return g.SV;});
+def2(HK,["goalsallowed","goalsagainst"],function(g){return g.GA;});
+def2(BB,["hits"],function(g){return v(g,"batting.hits");});
+def2(BB,["runs"],function(g){return v(g,"batting.runs");});
+def2(BB,["rbis","rbi"],function(g){return v(g,"batting.RBIs");});
+def2(BB,["homeruns"],function(g){return v(g,"batting.homeRuns");});
+def2(BB,["walks","batterwalks"],function(g){return v(g,"batting.walks");});
+def2(BB,["hitterstrikeouts","batterstrikeouts"],function(g){return v(g,"batting.strikeouts");});
+def2(BB,["hits+runs+rbis"],function(g){return v(g,"batting.hits")+v(g,"batting.runs")+v(g,"batting.RBIs");});
+def2(BB,["pitcherstrikeouts","strikeouts"],function(g){return g["pitching.strikeouts"];});
+def2(BB,["earnedrunsallowed","earnedruns"],function(g){return g["pitching.earnedRuns"];});
+def2(BB,["hitsallowed"],function(g){return g["pitching.hits"];});
+def2(BB,["walksallowed"],function(g){return g["pitching.walks"];});
+def2(BB,["pitchingouts","outs"],function(g){ var ip=g["pitching.fullInnings"]; if(ip==null) return undefined; return ip*3+n0(g["pitching.partInnings"]); });
+var SPORT_ALIAS={NBA:"NBA",WNBA:"NBA",CBB:"CBB",NCAAB:"CBB",NCAAMB:"CBB",NFL:"NFL",CFB:"CFB",NCAAF:"CFB",NHL:"NHL",MLB:"MLB"};
+function sportKey(s){ return SPORT_ALIAS[String(s||"NBA").toUpperCase()]||null; }
+function statFn(stat, sport){
+  var k=String(stat||"").toLowerCase().replace(/[^a-z0-9+]/g,""), sp=sportKey(sport||"NBA");
+  if(sp==="NFL"||sp==="CFB") return FB[k];
+  if(sp==="NHL") return HK[k];
+  if(sp==="MLB") return BB[k];
+  if(sp==="NBA"||sp==="CBB") return STATS[k];
+  return undefined;
+}
+// Game logs loaded from the site's data folder, by sport. Kept in memory only (too big for browser storage).
+var AUTO={}, AUTO_PULLED={};
 
 // Box-score column names from Basketball-Reference, ESPN, NBA.com and our own JSON.
 var COLS = {pts:"PTS",points:"PTS",trb:"REB",reb:"REB",rebounds:"REB",ast:"AST",assists:"AST",stl:"STL",steals:"STL",
@@ -420,7 +483,8 @@ function erf(x){ var t=1/(1+0.3275911*Math.abs(x)); var y=1-(((((1.061405429*t-1
 function phi(z){ return 0.5*(1+erf(z/Math.SQRT2)); }
 function gamesFor(p){
   if(p.games&&p.games.length) return {src:"manual", list:p.games.map(function(v){ return typeof v==="number"?{v:v}:v; })};
-  var log=state.logs[normName(p.player)], fn=statFn(p.stat);
+  var sp=sportKey(p.sport), k=normName(p.player);
+  var log=(sp&&AUTO[sp]&&AUTO[sp][k])||((sp==="NBA"||sp==="CBB"||!sp)?state.logs[k]:null), fn=statFn(p.stat,p.sport);
   if(!log||!fn) return {src:log?"nostat":null, list:[]};
   return {src:"log", list:log.games.map(function(g){ return {v:fn(g),opp:g.opp,date:g.date}; }).filter(function(x){return typeof x.v==="number"&&isFinite(x.v);})};
 }
@@ -506,7 +570,8 @@ function card(p){
 
 function render(){
   state.props.forEach(function(p){ p._a=analyze(p); });
-  var nLogs=Object.keys(state.logs).length;
+  var autoN=Object.keys(AUTO).reduce(function(s,sp){ return s+Object.keys(AUTO[sp]).length; },0);
+  var nLogs=autoN||Object.keys(state.logs).length;
   $("banner").innerHTML = state.isDemo
     ? '<b>Demo slate.</b> These players, teams and numbers are made up to show how the board works. Use <b>Import slate</b> for real lines and <b>Add game logs</b> for real stats.'
     : !state.props.length ? '<b>No props loaded.</b> Use <b>Import slate</b> to paste lines, or load the demo slate.'
@@ -552,12 +617,13 @@ function render(){
     tile("Above break-even", above, "2-pick needs "+pct(be2)+" per pick")+
     tile("Top over", best?pct(best._a.prob):"–", best?esc(best.player)+" "+esc(best.stat)+" o"+fmt(best.line):"No scored props");
   renderMissing(pool); renderSlip(); renderPayouts(); renderBooks(); save();
+  if(typeof autoLoadLogs==="function") autoLoadLogs();
 }
 function tile(k,v,n){ return '<div class="tile"><div class="k">'+k+'</div><div class="v">'+v+'</div><div class="n">'+n+'</div></div>'; }
 
 function renderMissing(pool){
   var counts={};
-  pool.forEach(function(p){ if(p.sport&&p.sport!=="NBA") return; if(p._a.n||isCombo(p)) return; if(!statFn(p.stat)) return; var k=normName(p.player); if(state.logs[k]) return; counts[k]=counts[k]||{name:p.player,n:0}; counts[k].n++; });
+  pool.forEach(function(p){ if(p.sport&&p.sport!=="NBA") return; if(p._a.n||isCombo(p)) return; if(!statFn(p.stat,"NBA")) return; var k=normName(p.player); if(state.logs[k]||(AUTO.NBA&&AUTO.NBA[k])) return; counts[k]=counts[k]||{name:p.player,n:0}; counts[k].n++; });
   var list=Object.keys(counts).map(function(k){return counts[k];}).sort(function(a,b){return b.n-a.n;});
   if(!list.length){ $("missingWrap").innerHTML=""; return; }
   var top=list.slice(0,40);
@@ -845,18 +911,31 @@ $("btnLogClearAll").addEventListener("click",function(){ state.logs={}; $("logMs
 $("btnDemo").addEventListener("click",function(){ loadDemo(); render(); });
 
 // On GitHub Pages, data/gamelogs.json is refreshed every morning by a GitHub Action. Load it when it's there.
-function autoLoadLogs(){
+var LOG_FILES=[["NBA","data/gamelogs.json"],["NFL","data/gamelogs_nfl.json"],["NHL","data/gamelogs_nhl.json"],["CBB","data/gamelogs_cbb.json"],["CFB","data/gamelogs_cfb.json"],["MLB","data/gamelogs_mlb.json"]];
+var LOG_STATE={};
+function autoLoadLogs(force){
   if(!/^https?:$/.test(location.protocol)) return;
-  try{
-    fetch("data/gamelogs.json",{cache:"no-cache"}).then(function(r){ return r.ok?r.text():null; }).then(function(t){
-      if(!t) return;
-      var by=parseLogText(t,""), info=JSON.parse(t);
-      Object.keys(by).forEach(function(k){ state.logs[k]=by[k]; });
-      var d=info.pulled?new Date(info.pulled):null;
-      state.logsPulled=d&&!isNaN(d)?d.toLocaleString([], {weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}):"";
-      render();
-    }).catch(function(){});
-  }catch(e){}
+  var need={NBA:1}; state.props.forEach(function(p){ var sp=sportKey(p.sport); if(sp) need[sp]=1; });
+  LOG_FILES.forEach(function(f){
+    if(!need[f[0]]) return;                       // only download sports that are on the board
+    if(LOG_STATE[f[0]]&&!force) return;           // already loaded or loading
+    LOG_STATE[f[0]]="loading";
+    try{
+      fetch(f[1],{cache:"no-cache"}).then(function(r){ return r.ok?r.json():null; }).then(function(obj){
+        if(!obj||!Array.isArray(obj.gamelogs)||!obj.gamelogs.length) return;
+        var m={};
+        obj.gamelogs.forEach(function(p){
+          var k=normName(p.player);
+          if(m[k]&&m[k].games.length>=p.games.length) return; // same name twice: keep the one with more games
+          m[k]=p;
+        });
+        AUTO[f[0]]=m; LOG_STATE[f[0]]="done";
+        var d=obj.pulled?new Date(obj.pulled):null;
+        if(d&&!isNaN(d)){ AUTO_PULLED[f[0]]=d; state.logsPulled=d.toLocaleString([], {weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}); }
+        render();
+      }).catch(function(){});
+    }catch(e){}
+  });
 }
 if(!load()) loadDemo();
 else if(state.isDemo){ loadDemo(); }

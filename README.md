@@ -75,6 +75,16 @@ On the site, the **Compare with** buttons next to **Check for new lines** pick a
 
 Setup: sign up at sportsgameodds.com (free Amateur plan), then in this repo go to **Settings → Secrets and variables → Actions → New repository secret**, name it `SGO_API_KEY` and paste the key. The free plan allows 2,500 games a month; two NBA pulls a day use roughly 300–600.
 
+### Game logs for every sport (automatic)
+
+The **Update game logs** workflow runs every morning and builds game logs from ESPN box scores for the NBA, NFL, NHL, college football and college basketball (`fetch_gamelogs_espn.py --sport ...`). Files: `data/gamelogs.json` (NBA) and `data/gamelogs_nfl.json`, `_nhl`, `_cfb`, `_cbb`. Each card then gets bar charts and an over probability for its own sport's stats:
+
+- **NFL / college football:** Pass Yards, Pass Attempts, Completions, Pass TDs, INT, Rush Yards, Rush Attempts, Receiving Yards, Receptions, Targets, Rush+Rec Yds, Pass+Rush Yds, longest rush/reception, Sacks, Tackles, FG Made, Kicking Points, Fantasy Score
+- **NHL:** Shots On Goal, Goals, Assists, Points, Blocked Shots, Hits, Faceoffs Won, Time On Ice, Goalie Saves, Goals Allowed
+- **NBA / college basketball:** all the basketball stats listed above
+
+The site only downloads a sport's file when your slate has that sport. MLB is supported by the script but turned off until spring.
+
 ### 2. Add game logs (NBA)
 
 Run the script on your computer. It uses only Python's built-in modules, so there's nothing to install.
