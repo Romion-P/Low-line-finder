@@ -16,7 +16,7 @@ concurrency:
 jobs:
   update:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -24,8 +24,9 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Pull game logs from NBA.com
-        run: python fetch_gamelogs_nba.py --out data/gamelogs.json
+      - name: Pull game logs from ESPN box scores
+        # NBA.com doesn't answer GitHub's servers, so the workflow uses ESPN.
+        run: python fetch_gamelogs_espn.py --out data/gamelogs.json
 
       - name: Save the new file to the repo
         run: |

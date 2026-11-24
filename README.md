@@ -71,10 +71,11 @@ python fetch_gamelogs_nba.py --season 2026-27
 
 ### Automatic daily updates (GitHub Pages)
 
-`.github/workflows/update-gamelogs.yml` runs the script every morning at about 6:17 AM Eastern and saves the result to `data/gamelogs.json`. When the app is served from GitHub Pages, it loads that file by itself on every visit, and the banner shows when the logs were last updated.
+`.github/workflows/update-gamelogs.yml` runs `fetch_gamelogs_espn.py` every morning (NBA.com doesn't answer GitHub's servers, so the workflow builds the logs from ESPN box scores instead) at about 6:17 AM Eastern and saves the result to `data/gamelogs.json`. When the app is served from GitHub Pages, it loads that file by itself on every visit, and the banner shows when the logs were last updated.
 
 - Run it any time from the **Actions** tab → **Update NBA game logs** → **Run workflow**.
-- NBA.com sometimes blocks requests from cloud servers like GitHub's. If a run fails, the previous day's file stays in place, and you can run the script on your own computer and use **Load gamelogs.json** instead.
+- If a run fails, the previous day's file stays in place, and you can run either script on your own computer and use **Load gamelogs.json** instead.
+- The PrizePicks workflow is turned off because PrizePicks blocks GitHub's servers. Paste the feed into **Import slate**, or run `fetch_prizepicks.py` at home and use **Load prizepicks.json**.
 - GitHub turns off scheduled workflows in repositories with no activity for 60 days. If that happens, re-enable it in the Actions tab.
 
 You can also paste a game log copied from Basketball-Reference (Share & Export → Get table as CSV), ESPN or NBA.com into **Add game logs**.
