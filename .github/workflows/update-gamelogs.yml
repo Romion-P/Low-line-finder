@@ -1,4 +1,4 @@
-name: Update NBA game logs
+name: Update game logs
 
 on:
   schedule:
@@ -16,7 +16,9 @@ concurrency:
 jobs:
   update:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # The very first run reads the whole season for every sport and can take 30-60 minutes.
+    # After that each run only fetches the previous day's games.
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
 
@@ -24,19 +26,39 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Pull game logs from ESPN box scores
-        # NBA.com doesn't answer GitHub's servers, so the workflow uses ESPN.
-        run: python fetch_gamelogs_espn.py --out data/gamelogs.json
+      # Each sport runs on its own; if one fails, the others still save.
+      - name: NBA
+        continue-on-error: true
+        run: python fetch_gamelogs_espn.py --sport nba --out data/gamelogs.json
 
-      - name: Save the new file to the repo
+      - name: NFL
+        continue-on-error: true
+        run: python fetch_gamelogs_espn.py --sport nfl --out data/gamelogs_nfl.json
+
+      - name: NHL
+        continue-on-error: true
+        run: python fetch_gamelogs_espn.py --sport nhl --out data/gamelogs_nhl.json
+
+      - name: College football
+        continue-on-error: true
+        run: python fetch_gamelogs_espn.py --sport cfb --out data/gamelogs_cfb.json
+
+      - name: College basketball
+        continue-on-error: true
+        run: python fetch_gamelogs_espn.py --sport cbb --out data/gamelogs_cbb.json
+
+      # MLB is off for the winter. In March, copy one of the steps above with --sport mlb.
+
+      - name: Save the new files to the repo
+        if: always()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898333+github-actions[bot]@users.noreply.github.com"
-          git add data/gamelogs.json
+          git add data/gamelogs*.json
           if git diff --cached --quiet; then
             echo "No changes."
           else
-            git commit -m "Update NBA game logs $(date -u +%Y-%m-%d)"
+            git commit -m "Update game logs $(date -u +%Y-%m-%d)"
             git pull --rebase
             git push
           fi
