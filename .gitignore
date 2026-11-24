@@ -1,5 +1,8 @@
 /gamelogs.json
+/prizepicks.json
 players.txt
+github_token.txt
+push_log.txt
 __pycache__/
 *.pyc
 .env

@@ -51,6 +51,22 @@ PrizePicks blocks many cloud servers and its terms restrict automated access. If
 
 **Check for new lines** loads the newest lines your GitHub workflow saved. Only if there are none does it try PrizePicks directly, which PrizePicks usually blocks. If it doesn't, paste the feed into **Import slate**, and the new/moved tracking works the same way. PrizePicks' terms restrict automated access, so keep auto-refresh intervals reasonable.
 
+### PrizePicks lines from your own computer (every 10 minutes)
+
+PrizePicks blocks GitHub's servers, so the PrizePicks workflow can't run there. `push_prizepicks.py` runs `fetch_prizepicks.py` on your PC, from your own internet connection, and uploads the result to `data/prizepicks.json` in this repo. Your site, including on your phone, then shows the new lines within a couple of minutes. It only uploads when lines actually changed.
+
+1. Put `push_prizepicks.py` and `fetch_prizepicks.py` in the same folder (for example Downloads).
+2. Create a token at github.com/settings/personal-access-tokens/new: **Only select repositories** → this repo, **Permissions → Contents → Read and write**.
+3. Save the token, alone, in a file named `github_token.txt` in that folder. Never upload or share it.
+4. Test: `python push_prizepicks.py`. It should print "Uploaded … lines".
+5. Schedule it in PowerShell (every 10 minutes while you're signed in, with no window popping up):
+
+```
+schtasks /Create /TN "Low Line Finder PrizePicks" /SC MINUTE /MO 10 /TR "pyw -3 `"$env:USERPROFILE\Downloads\push_prizepicks.py`"" /F
+```
+
+Each run adds a line to `push_log.txt`. To stop it: `schtasks /Delete /TN "Low Line Finder PrizePicks" /F`.
+
 ### 2. Add game logs (NBA)
 
 Run the script on your computer. It uses only Python's built-in modules, so there's nothing to install.
