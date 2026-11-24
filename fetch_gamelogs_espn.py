@@ -43,11 +43,28 @@ HEADERS = {
 # path on ESPN, extra scoreboard query (all Division I / FBS games), season start month-day, games kept per player
 SPORTS = {
     "nba": ("basketball/nba", "", "10-20", 30),
-    "cbb": ("basketball/mens-college-basketball", "&groups=50&limit=500", "11-01", 20),
+    "cbb": ("basketball/mens-college-basketball", "&groups=50&limit=500", "11-01", 12),
     "nfl": ("football/nfl", "", "09-01", 20),
-    "cfb": ("football/college-football", "&groups=80&limit=300", "08-20", 15),
+    "cfb": ("football/college-football", "&groups=80&limit=300", "08-20", 10),
     "nhl": ("hockey/nhl", "", "10-01", 30),
     "mlb": ("baseball/mlb", "", "03-15", 30),
+}
+
+# Stats worth keeping per sport (the ones PrizePicks posts lines on). Everything else ESPN
+# reports is dropped to keep the files small. MLB keeps everything until its names are checked.
+# Each kept stat is saved under a short code (the app uses the same codes).
+FOOTBALL_KEEP = {
+    "passing.completions": "pC", "passing.passingAttempts": "pA", "passing.passingYards": "pY",
+    "passing.passingTouchdowns": "pT", "passing.interceptions": "pI",
+    "rushing.rushingAttempts": "rA", "rushing.rushingYards": "rY", "rushing.rushingTouchdowns": "rT",
+    "rushing.longRushing": "rL", "receiving.receptions": "cR", "receiving.receivingYards": "cY",
+    "receiving.receivingTouchdowns": "cT", "receiving.longReception": "cL", "receiving.receivingTargets": "cG",
+    "defensive.totalTackles": "dT", "defensive.soloTackles": "dS", "defensive.sacks": "dK",
+    "kicking.fieldGoalsMade": "kF", "kicking.totalKickingPoints": "kP", "fumbles.fumblesLost": "fL"}
+KEEP = {
+    "nfl": FOOTBALL_KEEP, "cfb": FOOTBALL_KEEP,
+    "nhl": {"goals": "G", "assists": "A", "shotsTotal": "SOG", "blockedShots": "BS", "hits": "HIT",
+            "faceoffsWon": "FW", "timeOnIce": "TOI", "saves": "SV", "goalsAgainst": "GA"},
 }
 
 # Basketball box-score column -> our field. "FG", "3PT" and "FT" are "made-attempted".
@@ -237,10 +254,17 @@ def main():
         day += dt.timedelta(days=1)
         time.sleep(0.2)
 
-    out = []
+    out, wanted = [], KEEP.get(a.sport)
     for p in players.values():
         p["games"].sort(key=lambda x: x["date"])
         p["games"] = p["games"][-keep:]
+        if wanted:
+            short = set(wanted.values())  # games saved by an earlier run already use the short codes
+            p["games"] = [{wanted.get(k, k): v for k, v in g.items()
+                           if k in ("date", "opp") or k in wanted or k in short} for g in p["games"]]
+            p["games"] = [g for g in p["games"] if len(g) > 2]
+            if not p["games"]:
+                continue  # only had stats nobody bets on (punters, returners...)
         out.append(p)
     out.sort(key=lambda p: p["player"])
 
