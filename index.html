@@ -693,6 +693,7 @@ function doImport(){
   var t=$("importText").value.trim(), msg=$("importMsg"), list;
   msg.className="msg";
   if(!t){ msg.className="msg err"; msg.textContent="Paste CSV rows or PrizePicks JSON first."; return; }
+  if(/^https?:\/\/\S+$/.test(t)){ msg.className="msg err"; msg.textContent="That's a link, not the data. Open the link in a new tab, press Ctrl+A then Ctrl+C on that page, and paste what you copied here."; return; }
   try{
     if(t[0]==="{"||t[0]==="["){
       var obj=JSON.parse(t);
