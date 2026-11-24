@@ -81,7 +81,16 @@ button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
 .chip.new{background:var(--accent);color:#fff;border-color:transparent;font-weight:600}
 .chip.down{background:var(--good-soft);color:var(--good);border-color:transparent;font-weight:600}
 .chip.up{background:var(--warn-soft);color:var(--warn);border-color:transparent;font-weight:600}
-.live{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 14px}
+.live{display:flex;flex-direction:column;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 14px}
+.liverow{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center}
+.books{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-left:auto}
+.books .lbl{font-size:13px;color:var(--muted);margin-right:2px}
+.books button{padding:5px 10px;font-size:13px;border-radius:999px}
+.books button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.books button:disabled{opacity:.45;cursor:not-allowed}
+.chip.bk{font-family:var(--mono);font-weight:600}
+.chip.bk.good{background:var(--good-soft);color:var(--good);border-color:transparent}
+.chip.bk.bad{background:var(--warn-soft);color:var(--warn);border-color:transparent}
 .live .status{font-size:13px;color:var(--muted)}
 .live .status.err{color:var(--bad)}
 .chip.demon{background:var(--warn-soft);color:var(--warn);border-color:transparent}
@@ -150,13 +159,19 @@ details summary{cursor:pointer;font-weight:600}
   <div id="banner" class="demo-banner"></div>
 
   <section class="live" aria-label="Live PrizePicks lines">
-    <button class="primary" type="button" id="btnRefresh">Check for new lines</button>
-    <label class="ctl" for="ppLeague">League
-      <select id="ppLeague"><option value="7">NBA</option><option value="9">NFL</option><option value="8">NHL</option><option value="20">CBB</option><option value="15">CFB</option><option value="2">MLB</option></select>
-    </label>
-    <label class="ctl" for="autoChk"><input type="checkbox" id="autoChk"> Auto-refresh every</label>
-    <label class="ctl" for="autoMin"><input type="number" id="autoMin" min="2" max="30" value="3" style="width:56px"> min</label>
-    <span class="status" id="liveStatus" role="status">New lines get a New tag. Lines that moved show what they were.</span>
+    <div class="liverow">
+      <button class="primary" type="button" id="btnRefresh">Check for new lines</button>
+      <div class="books" id="bookBar" role="group" aria-label="Compare with a sportsbook"></div>
+    </div>
+    <div class="liverow">
+      <label class="ctl" for="ppLeague">League
+        <select id="ppLeague"><option value="7">NBA</option><option value="9">NFL</option><option value="8">NHL</option><option value="20">CBB</option><option value="15">CFB</option><option value="2">MLB</option></select>
+      </label>
+      <label class="ctl" for="autoChk"><input type="checkbox" id="autoChk"> Auto-refresh every</label>
+      <label class="ctl" for="autoMin"><input type="number" id="autoMin" min="2" max="30" value="3" style="width:56px"> min</label>
+      <span class="status" id="liveStatus" role="status">New lines get a New tag. Lines that moved show what they were.</span>
+      <span class="status" id="sbNote" style="margin-left:auto"></span>
+    </div>
   </section>
 
   <section class="controls" aria-label="Filters">
@@ -168,10 +183,12 @@ details summary{cursor:pointer;font-weight:600}
         <option value="edge">Edge vs line</option>
         <option value="hit">L10 hit rate</option>
         <option value="newest">Newest or just moved</option>
+        <option value="bookgap">Gap vs sportsbook</option>
       </select>
     </label>
     <div class="ctl">Games <div class="seg" id="winSeg" role="group" aria-label="Games shown"></div></div>
     <label class="ctl" for="lowOnly"><input type="checkbox" id="lowOnly"> Low lines only</label>
+    <label class="ctl" for="bookOnly"><input type="checkbox" id="bookOnly"> Below sportsbook line</label>
     <label class="ctl" for="recentOnly"><input type="checkbox" id="recentOnly"> New or moved (last 2 hrs)</label>
     <label class="ctl" for="stdOnly"><input type="checkbox" id="stdOnly"> Standard lines only</label>
     <label class="ctl" for="dataOnly"><input type="checkbox" id="dataOnly"> Only props with game data</label>
@@ -248,6 +265,7 @@ details summary{cursor:pointer;font-weight:600}
         <p style="margin:0">3. The share of the last 10 games that went over the line.</p>
         <p style="margin:0">The two estimates are blended 60/40 and pulled 15% toward 50%, since 10 games is a small sample. <b>Edge</b> is how far the weighted average sits above the line. The tick on each bar marks the per-pick break-even rate for a 2-pick power play at your payout setting.</p>
         <p style="margin:0"><b>New</b> marks a line that appeared since your previous import or refresh (it stays for 2 hours). <b>▼ was 25.5</b> means the line dropped, which helps an over; <b>▲ was 23.5</b> means it was raised.</p>
+        <p style="margin:0"><b>Sportsbook lines</b>: pick a book with the Compare with buttons and each card shows that book's line for the same player and stat. A green tag like <b>DK 26.5 (+2.0)</b> means PrizePicks' line is 2 lower than DraftKings', which helps an over. <b>All books</b> uses the typical line across sportsbooks.</p>
         <p style="margin:0">The model does not know about injuries, minutes changes, matchups or line moves. Treat a flag as a reason to look closer.</p>
       </div>
     </details>
@@ -286,7 +304,7 @@ var DEMO_LOGS = [
 var DEFAULT_PAY = {2:3,3:5,4:10,5:20,6:37.5};
 var KEY = "llf.v1";
 var CARD_CAP = 120;
-var state = {props:[], logs:{}, isDemo:true, sport:"All", stat:"All", sort:"prob", win:10, lowOnly:false, recentOnly:false, stdOnly:false, dataOnly:false, hideCombo:true, lowPct:8, minProb:40, slip:[], pay:Object.assign({},DEFAULT_PAY)};
+var state = {props:[], logs:{}, isDemo:true, sport:"All", stat:"All", sort:"prob", win:10, lowOnly:false, recentOnly:false, bookOnly:false, book:"consensus", stdOnly:false, dataOnly:false, hideCombo:true, lowPct:8, minProb:40, slip:[], pay:Object.assign({},DEFAULT_PAY)};
 
 function save(){ try{ var s=Object.assign({},state,{props:state.props.map(function(p){ var c=Object.assign({},p); delete c._a; delete c._g; return c; })}); localStorage.setItem(KEY, JSON.stringify(s)); }catch(e){} }
 function load(){
@@ -462,6 +480,8 @@ function card(p){
   if(a.low) chips.push('<span class="chip low">Low line</span>');
   if(p.tier==="goblin") chips.push('<span class="chip goblin">Goblin</span>');
   if(p.tier==="demon") chips.push('<span class="chip demon">Demon</span>');
+  var bl=bookLine(p);
+  if(bl){ var gap=bl.line-p.line; chips.unshift('<span class="chip bk '+(gap>0?'good':gap<0?'bad':'')+'" title="'+esc(bl.name)+' line '+fmt(bl.line)+(bl.odds?' at '+esc(bl.odds):'')+'. '+(gap>0?'PrizePicks is '+fmt(gap)+' lower, which helps an over.':gap<0?'PrizePicks is '+fmt(-gap)+' higher.':'Same line.')+'">'+esc(bl.short)+' '+fmt(bl.line)+(gap?' ('+(gap>0?'+':'')+fmt(gap)+')':'')+'</span>'); }
   var now=Date.now();
   if(p.firstSeen&&now-p.firstSeen<RECENT) chips.unshift('<span class="chip new">New</span>');
   if(p.prevLine!=null&&p.prevLine!==p.line) chips.unshift('<span class="chip '+(p.line>p.prevLine?'up':'down')+'" title="Changed '+esc(ago(p.movedAt))+'">'+(p.line>p.prevLine?'▲':'▼')+' was '+fmt(p.prevLine)+'</span>');
@@ -501,7 +521,7 @@ function render(){
   var stats=["All"].concat(Array.from(new Set(pool.map(function(p){return p.stat;}))).sort());
   if(stats.indexOf(state.stat)<0) state.stat="All";
   $("statSel").innerHTML=stats.map(function(s){ return '<option'+(s===state.stat?' selected':'')+'>'+esc(s)+'</option>'; }).join("");
-  $("sortSel").value=state.sort; $("lowOnly").checked=state.lowOnly; $("recentOnly").checked=state.recentOnly; $("stdOnly").checked=state.stdOnly; $("dataOnly").checked=state.dataOnly; $("hideCombo").checked=state.hideCombo;
+  $("sortSel").value=state.sort; $("lowOnly").checked=state.lowOnly; $("recentOnly").checked=state.recentOnly; $("bookOnly").checked=state.bookOnly; $("stdOnly").checked=state.stdOnly; $("dataOnly").checked=state.dataOnly; $("hideCombo").checked=state.hideCombo;
   $("lowPct").value=state.lowPct; $("minProb").value=state.minProb; $("minProbOut").textContent=state.minProb+"%";
 
   var shown=pool.filter(function(p){
@@ -511,11 +531,13 @@ function render(){
     if(state.dataOnly&&!a.n) return false;
     if(state.lowOnly&&!a.low) return false;
     if(state.recentOnly&&!isRecent(p)) return false;
+    if(state.bookOnly){ var bl=bookLine(p); if(!bl||!(bl.line>p.line)) return false; }
     if(a.n&&a.prob*100<state.minProb) return false;
     return true;
   });
   var key={prob:"prob",edge:"edge",hit:"hit"}[state.sort];
-  if(state.sort==="newest") shown.sort(function(x,y){ return changedAt(y)-changedAt(x) || ((y._a.prob||0)-(x._a.prob||0)); });
+  if(state.sort==="bookgap") shown.sort(function(x,y){ var a=bookLine(x), b=bookLine(y); var ga=a?a.line-x.line:-1e9, gb=b?b.line-y.line:-1e9; return gb-ga || ((y._a.prob||0)-(x._a.prob||0)); });
+  else if(state.sort==="newest") shown.sort(function(x,y){ return changedAt(y)-changedAt(x) || ((y._a.prob||0)-(x._a.prob||0)); });
   else shown.sort(function(x,y){ var a=x._a[key], b=y._a[key]; if(!isFinite(a)&&!isFinite(b)) return 0; if(!isFinite(a)) return 1; if(!isFinite(b)) return -1; return b-a; });
   var html=shown.slice(0,CARD_CAP).map(card).join("");
   if(shown.length>CARD_CAP) html+='<div class="empty">Showing the top '+CARD_CAP+' of '+shown.length+' props. Pick a stat or turn on "Only props with game data" to narrow it down.</div>';
@@ -529,7 +551,7 @@ function render(){
     tile("Low lines", lows.length, "line "+state.lowPct+"%+ under L10 avg")+
     tile("Above break-even", above, "2-pick needs "+pct(be2)+" per pick")+
     tile("Top over", best?pct(best._a.prob):"–", best?esc(best.player)+" "+esc(best.stat)+" o"+fmt(best.line):"No scored props");
-  renderMissing(pool); renderSlip(); renderPayouts(); save();
+  renderMissing(pool); renderSlip(); renderPayouts(); renderBooks(); save();
 }
 function tile(k,v,n){ return '<div class="tile"><div class="k">'+k+'</div><div class="v">'+v+'</div><div class="n">'+n+'</div></div>'; }
 
@@ -659,6 +681,50 @@ function autoLoadPP(){
     }).catch(function(){ return "none"; });
   }catch(e){ return Promise.resolve("none"); }
 }
+/* ---------- sportsbook lines (data/sportsbook.json from the GitHub workflow) ---------- */
+var BOOKS=[["draftkings","DraftKings","DK"],["fanduel","FanDuel","FD"],["betmgm","BetMGM","MGM"],["caesars","Caesars","CZR"],["espnbet","ESPN BET","ESPN"],["bovada","Bovada","BOV"],["unibet","Unibet","UNI"],["pointsbet","PointsBet","PB"],["williamhill","William Hill","WH"]];
+function bookInfo(id){ for(var i=0;i<BOOKS.length;i++) if(BOOKS[i][0]===id) return BOOKS[i]; return [id,id,id.slice(0,4).toUpperCase()]; }
+var SB=null, SBX={};
+var CANON={points:"PTS",pts:"PTS",rebounds:"REB",rebs:"REB",assists:"AST",asts:"AST",
+  "points+rebounds+assists":"PRA","pts+rebs+asts":"PRA",pra:"PRA","points+rebounds":"PR","pts+rebs":"PR","points+assists":"PA","pts+asts":"PA",
+  "rebounds+assists":"RA","rebs+asts":"RA",threepointersmade:"3PM","3ptmade":"3PM","3pointersmade":"3PM",blocks:"BLK",blockedshots:"BLK",
+  steals:"STL","blocks+steals":"BS","blks+stls":"BS",turnovers:"TOV",
+  passingyards:"PASSYD",passyards:"PASSYD",rushingyards:"RUSHYD",rushyards:"RUSHYD",receivingyards:"RECYD",
+  receivingreceptions:"REC",receptions:"REC","passing+rushingyards":"PRUSHYD","pass+rushyds":"PRUSHYD",
+  "rushing+receivingyards":"RRECYD","rush+recyds":"RRECYD",shotsongoal:"SOG"};
+function canonStat(s){ var k=String(s||"").toLowerCase().replace(/[^a-z0-9+]/g,""); return CANON[k]||k; }
+function sbKey(player,stat){ return normName(player)+"|"+canonStat(stat); }
+function setSB(obj){
+  SB=obj; SBX={};
+  (obj.props||[]).forEach(function(r){ SBX[sbKey(r.player,r.statID)]=r; });
+}
+function bookLine(p){
+  if(!SB||state.book==="off") return null;
+  var r=SBX[sbKey(p.player,p.stat)]; if(!r) return null;
+  if(state.book==="consensus"){ return r.consensus!=null?{line:r.consensus,name:"Sportsbook consensus",short:"Books"}:null; }
+  var b=r.books&&r.books[state.book]; if(!b) return null;
+  var info=bookInfo(state.book); return {line:b.line,odds:b.odds,name:info[1],short:info[2]};
+}
+function renderBooks(){
+  var have=SB?SB.books||[]:[], ids=BOOKS.map(function(b){return b[0];});
+  have.forEach(function(id){ if(ids.indexOf(id)<0) ids.push(id); });
+  var html='<span class="lbl">Compare with:</span>'+
+    '<button type="button" data-book="off" aria-pressed="'+(state.book==="off")+'">Off</button>'+
+    '<button type="button" data-book="consensus" aria-pressed="'+(state.book==="consensus")+'"'+(SB?'':' disabled')+' title="The typical line across sportsbooks">All books</button>'+
+    ids.map(function(id){ var on=have.indexOf(id)>=0, info=bookInfo(id); return '<button type="button" data-book="'+esc(id)+'" aria-pressed="'+(state.book===id)+'"'+(on?'':' disabled title="No lines from '+esc(info[1])+' in the latest pull"')+'>'+esc(info[1])+'</button>'; }).join("");
+  $("bookBar").innerHTML=html;
+  $("sbNote").textContent=SB?'Sportsbook lines pulled '+whenText(SB.pulledMs)+' · '+(SB.props||[]).length+' player lines':'Sportsbook lines appear after the "Update sportsbook lines" workflow runs on GitHub.';
+}
+function autoLoadSB(){
+  if(!/^https?:$/.test(location.protocol)) return;
+  try{
+    fetch("data/sportsbook.json?t="+Date.now(),{cache:"no-store"}).then(function(r){ return r.ok?r.json():null; }).then(function(obj){
+      if(!obj||obj.source!=="sportsgameodds"||!Array.isArray(obj.props)) return;
+      if(SB&&SB.pulledMs===obj.pulledMs) return;
+      setSB(obj); render();
+    }).catch(function(){});
+  }catch(e){}
+}
 var autoTimer=null, failCount=0;
 function setStatus(t,err){ var el=$("liveStatus"); el.textContent=t; el.className="status"+(err?" err":""); }
 function refreshPP(){
@@ -728,6 +794,7 @@ document.addEventListener("click",function(e){
   var b=e.target.closest("button"); if(!b) return;
   if(b.dataset.sport){ state.sport=b.dataset.sport; state.stat="All"; render(); return; }
   if(b.dataset.win){ state.win=+b.dataset.win; render(); return; }
+  if(b.dataset.book){ state.book=b.dataset.book; render(); return; }
   if(b.dataset.fillname){ $("logName").value=b.dataset.fillname; $("logText").focus(); return; }
   var id=b.dataset.id, act=b.dataset.act;
   if(act==="slip"){ var i=state.slip.indexOf(id); if(i>=0) state.slip.splice(i,1); else state.slip.push(id); render(); }
@@ -736,7 +803,7 @@ document.addEventListener("click",function(e){
 });
 $("statSel").addEventListener("change",function(e){ state.stat=e.target.value; render(); });
 $("sortSel").addEventListener("change",function(e){ state.sort=e.target.value; render(); });
-["lowOnly","recentOnly","stdOnly","dataOnly","hideCombo"].forEach(function(k){ $(k).addEventListener("change",function(e){ state[k]=e.target.checked; render(); }); });
+["lowOnly","recentOnly","bookOnly","stdOnly","dataOnly","hideCombo"].forEach(function(k){ $(k).addEventListener("change",function(e){ state[k]=e.target.checked; render(); }); });
 $("lowPct").addEventListener("input",function(e){ var v=+e.target.value; if(isFinite(v)){ state.lowPct=Math.min(50,Math.max(0,v)); render(); } });
 $("minProb").addEventListener("input",function(e){ state.minProb=+e.target.value; render(); });
 $("payouts").addEventListener("input",function(e){ var n=e.target.dataset.pay; if(n){ state.pay[n]=+e.target.value||0; render(); } });
@@ -796,7 +863,8 @@ else if(state.isDemo){ loadDemo(); }
 render();
 autoLoadLogs();
 autoLoadPP();
-if(/^https?:$/.test(location.protocol)) setInterval(autoLoadPP,2*60000);
+autoLoadSB();
+if(/^https?:$/.test(location.protocol)) setInterval(function(){ autoLoadPP(); autoLoadSB(); },2*60000);
 })();
 </script>
 </body>

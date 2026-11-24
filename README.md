@@ -67,6 +67,14 @@ schtasks /Create /TN "Low Line Finder PrizePicks" /SC MINUTE /MO 10 /TR "pyw -3 
 
 Each run adds a line to `push_log.txt`. To stop it: `schtasks /Delete /TN "Low Line Finder PrizePicks" /F`.
 
+### Sportsbook lines (SportsGameOdds, free plan)
+
+`.github/workflows/update-sportsbook.yml` runs `fetch_sportsbook.py` twice a day (about 10:43 AM and 5:43 PM Eastern) and saves player-prop lines from DraftKings, FanDuel, BetMGM, Caesars, ESPN BET and the other books on the free plan to `data/sportsbook.json`.
+
+On the site, the **Compare with** buttons next to **Check for new lines** pick a book. Each card then shows that book's line for the same player and stat, for example **DK 26.5 (+2.0)** when PrizePicks has 24.5. Tick **Below sportsbook line**, or sort by **Gap vs sportsbook**, to find PrizePicks lines set lower than the books.
+
+Setup: sign up at sportsgameodds.com (free Amateur plan), then in this repo go to **Settings → Secrets and variables → Actions → New repository secret**, name it `SGO_API_KEY` and paste the key. The free plan allows 2,500 games a month; two NBA pulls a day use roughly 300–600.
+
 ### 2. Add game logs (NBA)
 
 Run the script on your computer. It uses only Python's built-in modules, so there's nothing to install.
